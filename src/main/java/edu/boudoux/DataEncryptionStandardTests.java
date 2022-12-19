@@ -4,7 +4,7 @@ package edu.boudoux;
 import java.util.*;
 import java.util.function.Function;
 
-import static edu.boudoux.DataEncryptionStandard.des;
+import static edu.boudoux.DataEncryptionStandard._des;
 import static java.lang.Integer.parseInt;
 
 public class DataEncryptionStandardTests {
@@ -34,6 +34,33 @@ public class DataEncryptionStandardTests {
             {-2, -1, 0, 1},
             {-127, -126, -125, -124}
     };
+
+
+    public static void main(String[] args) {
+        testEncryptionDecryption("12345678", "Ÿ \u077A \u30A1 \u30A4");
+
+        runTests(
+                DataEncryptionStandardTests::applyKeyPermutationChoice1_Tests
+                ,DataEncryptionStandardTests::applyKeyPermutationChoice2_Tests
+                ,DataEncryptionStandardTests::initialPermutation_Tests
+                ,DataEncryptionStandardTests::finalPermutation_Tests
+                ,DataEncryptionStandardTests::expansionPermutation_Tests
+                ,DataEncryptionStandardTests::pBoxPermutation_Tests
+                ,DataEncryptionStandardTests::padding_Tests
+                ,DataEncryptionStandardTests::createBlocks_Tests
+                ,DataEncryptionStandardTests::splitKey_Tests
+                ,DataEncryptionStandardTests::applyLeftRotation_Tests
+                ,DataEncryptionStandardTests::joinKeyHalves_Tests
+                ,DataEncryptionStandardTests::keyTransformation_Tests
+                ,DataEncryptionStandardTests::xorWithKey_Tests
+                ,DataEncryptionStandardTests::substitutionBoxPermutation_Tests
+                ,DataEncryptionStandardTests::applyFunctionF_Tests
+                ,DataEncryptionStandardTests::processRound_Tests
+                ,DataEncryptionStandardTests::initialFinalPermutationReversion_Tests
+                ,DataEncryptionStandardTests::keyTransformationAfterSixteenRotations_Test
+                ,DataEncryptionStandardTests::validationTest // disabled
+        );
+    }
 
     /**
      * Permutates using string manipulation, rather than bit manipulation. This kind of manipulation is easier to implement
@@ -92,41 +119,15 @@ public class DataEncryptionStandardTests {
         }
 
         if(failures == 0)
-            System.out.printf("Testes passed for '%s'\n", methodName);
-    }
-
-    public static void main(String[] args) {
-        testEncryptionDecryption("12345678", "Ÿ \u077A \u30A1 \u30A4");
-
-        runTests(
-                DataEncryptionStandardTests::applyKeyPermutationChoice1_Tests
-                ,DataEncryptionStandardTests::applyKeyPermutationChoice2_Tests
-                ,DataEncryptionStandardTests::initialPermutation_Tests
-                ,DataEncryptionStandardTests::finalPermutation_Tests
-                ,DataEncryptionStandardTests::expansionPermutation_Tests
-                ,DataEncryptionStandardTests::pBoxPermutation_Tests
-                ,DataEncryptionStandardTests::padding_Tests
-                ,DataEncryptionStandardTests::createBlocks_Tests
-                ,DataEncryptionStandardTests::splitKey_Tests
-                ,DataEncryptionStandardTests::applyLeftRotation_Tests
-                ,DataEncryptionStandardTests::joinKeyHalves_Tests
-                ,DataEncryptionStandardTests::keyTransformation_Tests
-                ,DataEncryptionStandardTests::xorWithKey_Tests
-                ,DataEncryptionStandardTests::substitutionBoxPermutation_Tests
-                ,DataEncryptionStandardTests::applyFunctionF_Tests
-                ,DataEncryptionStandardTests::processRound_Tests
-                ,DataEncryptionStandardTests::initialFinalPermutationReversion_Tests
-                ,DataEncryptionStandardTests::keyTransformationAfterSixteenRotations_Test
-                //,DataEncryptionStandardTests::validationTest // disabled
-        );
+            System.out.printf("Tests passed for '%s'\n", methodName);
     }
 
     private static void testEncryptionDecryption(String keyPass, String plainText) {
         byte[] keyPassBytes = keyPass.getBytes();
         byte[] plainTextBytes = plainText.getBytes();
 
-        byte[] encryptedBytes = des(plainTextBytes, keyPassBytes, DataEncryptionStandard.Operation.ENCRYPT);
-        byte[] decryptedBytes = des(encryptedBytes, keyPassBytes, DataEncryptionStandard.Operation.DECRYPT);
+        byte[] encryptedBytes = _des(plainTextBytes, keyPassBytes, DataEncryptionStandard.Operation.ENCRYPT);
+        byte[] decryptedBytes = _des(encryptedBytes, keyPassBytes, DataEncryptionStandard.Operation.DECRYPT);
 
         String plainTextDecrypted = new String(decryptedBytes);
         System.out.printf("\nPlain text: '%s', Encrypted value (B64): %s, Decrypted value: '%s'\n", new String(plainTextBytes),
@@ -135,9 +136,9 @@ public class DataEncryptionStandardTests {
         System.out.printf("Encrypted value: '%s'\n", new String(encryptedBytes));
 
         if(! Arrays.equals(decryptedBytes, plainTextBytes))
-            System.err.println("\nDecryption failed!");
+            System.err.println("\n'testEncryptionDecryption' failed");
         else
-            System.out.println("\nSUCCESS!!!!");
+            System.out.println("\nTests passed for 'testEncryptionDecryption'");
     }
 
     /**
@@ -156,42 +157,17 @@ public class DataEncryptionStandardTests {
                 (byte) parseInt("E8", 16), (byte) parseInt("C7", 16), (byte) parseInt("3B", 16),
                 (byte) parseInt("CA", 16), (byte) parseInt("7D", 16) };
 
-        final String[] ITERATION_VALUES = new String[] {
-                "8DA744E0C94E5E17",
-                "0CDB25E3BA3C6D79",
-                "4784C4BA5006081F",
-                "1CF1FC126F2EF842",
-                "E4BE250042098D13",
-                "7BFC5DC6ADB5797C",
-                "1AB3B4D82082FB28",
-                "C1576A14DE707097",
-                "739B68CD2E26782A",
-                "2A59F0C464506EDB",
-                "A5C39D4251F0A81E",
-                "7239AC9A6107DDB1",
-                "070CAC8590241233",
-                "78F87B6E3DFECF61",
-                "95EC2578C2C433F0",
-                "1B1A2DDB4C642438",
-                "1B1A2DDB4C642438"
-        };
-
         for(int i = 0; i < 16; i++) {
             if (i % 2 == 0)
-                result = des(result, result, DataEncryptionStandard.Operation.ENCRYPT);
+                result = DataEncryptionStandard._des(result, result, DataEncryptionStandard.Operation.ENCRYPT, false);
             else
-                result = des(result, result, DataEncryptionStandard.Operation.DECRYPT);
-
-            String hexResult = getHex(result);
-            if (!hexResult.equals(ITERATION_VALUES[i])) {
-                System.out.printf("[%d] Values don't match - expected: %s, returned: %s\n", i + 1, ITERATION_VALUES[i], hexResult);
-            }
+                result = DataEncryptionStandard._des(result, result, DataEncryptionStandard.Operation.DECRYPT, false);
         }
 
         if(! Arrays.equals(result, FINAL_RESULT)) {
             System.err.println("validationTest failed!");
         } else {
-            System.out.println("Testes passed for 'validationTest'");
+            System.out.println("Tests passed for 'validationTest'");
         }
     }
 
@@ -219,7 +195,7 @@ public class DataEncryptionStandardTests {
         if(! Arrays.equals(transformedKey, key))
             System.err.println("keyTransformationAfterSixteenRotations_Test failed");
         else
-            System.out.println("Testes passed for 'keyTransformationAfterSixteenRotations_Test'");
+            System.out.println("Tests passed for 'keyTransformationAfterSixteenRotations_Test'");
     }
 
     private static void initialFinalPermutationReversion_Tests() {
@@ -234,13 +210,12 @@ public class DataEncryptionStandardTests {
         }
 
         if(! failed)
-            System.out.println("Testes passed for 'initialFinalPermutationReversion_Tests'");
+            System.out.println("Tests passed for 'initialFinalPermutationReversion_Tests'");
     }
 
     private static void runTests(Runnable... methods) {
         for (Runnable testMethod: methods) {
             testMethod.run();
-            System.out.println("--------------------");
         }
     }
 
@@ -271,7 +246,7 @@ public class DataEncryptionStandardTests {
         }
 
         if(failures == 0)
-            System.out.println("Testes passed for 'padding_Tests'");
+            System.out.println("Tests passed for 'padding_Tests'");
     }
 
     public static void createBlocks_Tests() {
@@ -299,7 +274,7 @@ public class DataEncryptionStandardTests {
         }
 
         if(failures == 0)
-            System.out.println("Testes passed for 'createBlocks_Tests'");
+            System.out.println("Tests passed for 'createBlocks_Tests'");
     }
 
     public static void applyKeyPermutationChoice1_Tests() {
@@ -341,7 +316,7 @@ public class DataEncryptionStandardTests {
         }
 
         if(totalFailed == 0)
-            System.out.println("Testes passed for 'keyTransformation_Tests'");
+            System.out.println("Tests passed for 'keyTransformation_Tests'");
     }
 
     private static Map.Entry<byte[], byte[]> _keyTransformation(int roundNumber, byte[] key) {
@@ -394,7 +369,7 @@ public class DataEncryptionStandardTests {
         }
 
         if(totalFailed == 0)
-            System.out.println("Testes passed for 'processRound_Tests'");
+            System.out.println("Tests passed for 'processRound_Tests'");
     }
 
     public static void  finalPermutation_Tests() {
@@ -428,7 +403,7 @@ public class DataEncryptionStandardTests {
         }
 
         if(failures == 0)
-            System.out.println("Testes passed for 'splitKey_Tests'");
+            System.out.println("Tests passed for 'splitKey_Tests'");
     }
 
     private static void generateSplitKeysCases(List<Map.Entry<byte[],byte[]>> casesList) {
@@ -483,7 +458,7 @@ public class DataEncryptionStandardTests {
         failures += assertApplyLeftRotationCases(casesList_2, 2);
 
         if(failures == 0)
-            System.out.println("Testes passed for 'applyLeftRotation_Tests'");
+            System.out.println("Tests passed for 'applyLeftRotation_Tests'");
     }
 
     private static int assertApplyLeftRotationCases(List<Map.Entry<byte[],byte[]>> casesList, int bitsToRotate) {
@@ -547,7 +522,7 @@ public class DataEncryptionStandardTests {
         }
 
         if(totalFailed == 0)
-            System.out.println("Testes passed for 'joinKeyHalves_Tests'");
+            System.out.println("Tests passed for 'joinKeyHalves_Tests'");
     }
 
     private static Map.Entry<byte[][], byte[]> _joinKeyHalves(byte[][] splittedKey) {
@@ -598,7 +573,7 @@ public class DataEncryptionStandardTests {
         }
 
         if(totalFailed == 0)
-            System.out.println("Testes passed for 'applyFunctionF_Tests'");
+            System.out.println("Tests passed for 'applyFunctionF_Tests'");
     }
 
     public static void  expansionPermutation_Tests() {
@@ -643,7 +618,7 @@ public class DataEncryptionStandardTests {
         }
 
         if(totalFailed == 0)
-            System.out.println("Testes passed for 'xorWithKey_Tests'");
+            System.out.println("Tests passed for 'xorWithKey_Tests'");
     }
 
     private static Map.Entry<byte[][],byte[]> _xorWithKey(byte[] plainText, byte[] key) {
@@ -724,7 +699,7 @@ public class DataEncryptionStandardTests {
         }
 
         if(totalFailed == 0)
-            System.out.println("Testes passed for 'substitutionBoxPermutation_Tests'");
+            System.out.println("Tests passed for 'substitutionBoxPermutation_Tests'");
     }
 
     public static void  pBoxPermutation_Tests() {

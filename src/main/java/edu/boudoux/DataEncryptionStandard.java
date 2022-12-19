@@ -1,7 +1,7 @@
 package edu.boudoux;
+
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.List;
 
 public class DataEncryptionStandard {
@@ -128,7 +128,7 @@ public class DataEncryptionStandard {
         DECRYPT;
     }
 
-    public static byte[] des(byte[] value, byte[] key, Operation operation) { // TODO Implement different Paddings
+    static byte[] _des(byte[] value, byte[] key, Operation operation, boolean usePadding) {
         if(value == null || value.length == 0)
             throw new IllegalArgumentException("Please, enter the value");
 
@@ -138,7 +138,7 @@ public class DataEncryptionStandard {
         if(operation == null)
             throw new IllegalArgumentException("The mode is required!");
 
-        byte[][] plainTextBlocks = createBlocks(value, operation == Operation.ENCRYPT); // TODO implement a solution that pulls the blocks on demand
+        byte[][] plainTextBlocks = createBlocks(value, usePadding && operation == Operation.ENCRYPT); // TODO implement a solution that pulls the blocks on demand
         byte[][] subKeys = createSubKeys(key);
 
         List<byte[]> resultingTextList = new ArrayList<>();
@@ -162,11 +162,15 @@ public class DataEncryptionStandard {
             resultingTextList.add(roundCipherText);
         }
 
-        if(operation == Operation.DECRYPT) {
+        if(operation == Operation.DECRYPT && usePadding) {
             return stripPadding(toArray(resultingTextList));
         }
 
         return toArray(resultingTextList);
+    }
+
+    public static byte[] _des(byte[] value, byte[] key, Operation operation) { // TODO Implement different Paddings
+        return _des(value, key, operation, true);
     }
 
     private static byte[][] createSubKeys(byte[] key) {

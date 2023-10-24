@@ -1,3 +1,5 @@
+(DEPRECATED - MOVED TO 'https://github.com/israelboudoux/cryptography-playground')
+
 # Data Encryption Standard
 
 This is an implementation of the Data Encryption Standard (DES). It isn't fully validated yet, since the Validation Test 
